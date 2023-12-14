@@ -1,7 +1,7 @@
 {
-  "name": "devskiller-javascript-social-media-query-likes-nodejs",
+  "name": "bongohive-javascript-social-media-query-likes-nodejs",
   "private": true,
-  "author": "Devskiller",
+  "author": "Bongohive",
   "scripts": {
     "test": "babel-node test",
     "test:watch": "chokidar \"**/*.js\" -c \"npm test\" --silent --initial --ignore node_modules"
