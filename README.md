@@ -140,4 +140,4 @@ Follow these steps if you are using zip/git mode:
 
 **Good Luck!**
 
-# social-network-assignment
+# social-media-query-assignment
