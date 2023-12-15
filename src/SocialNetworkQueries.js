@@ -11,14 +11,6 @@ export class SocialNetworkQueries {
     return null;
   }
 
-  occurringBooksInFriends(friendsLikes) {}
-  calculatePotentialLikes(friends, friendsLikes, minimalScore) {}
-
-  /**
-   *
-   * @param {Number} minimalScore
-   * @returns {Promise<string[]>}
-   */
   async findPotentialLikes(minimalScore) {
     let currentUser;
 
@@ -35,32 +27,37 @@ export class SocialNetworkQueries {
       return [];
     }
 
-    const { friends, likes: currentUserLikes } = currentUser;
+    if (!currentUser.friends) return [];
 
-    const userLikes = new Set(currentUserLikes);
-    const friendLikesCount = new Map();
+    const { friends, likes } = currentUser;
+
+    const userLikes = new Set(likes);
+    const friendLikesMap = new Map();
 
     for (const friend of friends) {
-      const friendsLikes = new Set(friend.likes)
+      const friendsLikes = new Set(friend.likes);
       for (const title of [...friendsLikes]) {
-        if (!userLikes.has(title)) {
-          friendLikesCount.set(title, (friendLikesCount.get(title) || 0) + 1);
-        }
+        if (!userLikes.has(title))
+          friendLikesMap.set(title, (friendLikesMap.get(title) || 0) + 1);
       }
     }
 
-    const potentialLikes = Array.from(friendLikesCount.entries()).filter(
-      ([title, count]) => count / friends.length >= minimalScore && !userLikes.has(title)
-    )
+    const potentialLikes = Array.from(friendLikesMap.entries()).filter(
+      ([title, count]) =>
+        count / friends.length >= minimalScore && !userLikes.has(title)
+    );
 
-    const sortedPotentialLikes =  potentialLikes.sort(([firstTitle, firstCount], [secondTitle, secondCount]) => {
-      if (secondCount !== firstCount) {
-        return secondCount - firstCount;
-      } else {
-        return firstTitle.localeCompare(secondTitle, "en", { sensitivity: "base" });
-      }
-    })
-    .map(([book]) => book);
+    const sortedPotentialLikes = potentialLikes
+      .sort(([firstTitle, firstCount], [secondTitle, secondCount]) => {
+        if (secondCount !== firstCount) {
+          return secondCount - firstCount;
+        } else {
+          return firstTitle.localeCompare(secondTitle, "en", {
+            sensitivity: "base",
+          });
+        }
+      })
+      .map(([book]) => book);
 
     return sortedPotentialLikes;
   }
