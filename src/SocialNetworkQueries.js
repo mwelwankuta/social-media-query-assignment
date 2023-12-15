@@ -1,15 +1,9 @@
 export class SocialNetworkQueries {
   constructor({ fetchCurrentUser }) {
     this.fetchCurrentUser = fetchCurrentUser;
-    this.fetchedUserCache = [];
+    this.cachedUser = null
   }
 
-  loadCurrentUserFromCache() {
-    if (this.fetchedUserCache.length)
-      return this.fetchCurrentUser[this.fetchCurrentUser.length - 1];
-
-    return null;
-  }
 
   async findPotentialLikes(minimalScore) {
     let currentUser;
@@ -18,9 +12,9 @@ export class SocialNetworkQueries {
       const user = await this.fetchCurrentUser();
 
       currentUser = user;
-      this.fetchedUserCache.push(user);
+      this.cachedUser = user
     } catch (error) {
-      currentUser = this.loadCurrentUserFromCache();
+      currentUser = this.cachedUser
     }
 
     if (!currentUser) {
