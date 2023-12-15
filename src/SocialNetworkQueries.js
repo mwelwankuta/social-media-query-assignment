@@ -1,47 +1,12 @@
 export class SocialNetworkQueries {
+  #cachedUser = null;
+
   constructor({ fetchCurrentUser }) {
     this.fetchCurrentUser = fetchCurrentUser;
-    this.cachedUser = null
   }
 
-
-  async findPotentialLikes(minimalScore) {
-    let currentUser;
-
-    try {
-      const user = await this.fetchCurrentUser();
-
-      currentUser = user;
-      this.cachedUser = user
-    } catch (error) {
-      currentUser = this.cachedUser
-    }
-
-    if (!currentUser) {
-      return [];
-    }
-
-    if (!currentUser.friends) return [];
-
-    const { friends, likes } = currentUser;
-
-    const userLikes = new Set(likes);
-    const friendLikesMap = new Map();
-
-    for (const friend of friends) {
-      const friendsLikes = new Set(friend.likes);
-      for (const title of [...friendsLikes]) {
-        if (!userLikes.has(title))
-          friendLikesMap.set(title, (friendLikesMap.get(title) || 0) + 1);
-      }
-    }
-
-    const potentialLikes = Array.from(friendLikesMap.entries()).filter(
-      ([title, count]) =>
-        count / friends.length >= minimalScore && !userLikes.has(title)
-    );
-
-    const sortedPotentialLikes = potentialLikes
+  #orderBookTitlesByLikes(potentialLikes) {
+    return potentialLikes
       .sort(([firstTitle, firstCount], [secondTitle, secondCount]) => {
         if (secondCount !== firstCount) {
           return secondCount - firstCount;
@@ -52,6 +17,43 @@ export class SocialNetworkQueries {
         }
       })
       .map(([book]) => book);
+  }
+
+  async findPotentialLikes(minimalScore) {
+    let currentUser;
+
+    try {
+      const user = await this.fetchCurrentUser();
+      this.#cachedUser = currentUser = user;
+    } catch (error) {
+      currentUser = this.#cachedUser;
+    }
+
+    if (!currentUser) return [];
+    if (!currentUser.friends) return [];
+
+    const { friends, likes } = currentUser;
+
+    const currentUserLikes = new Set(likes);
+    const friendLikesMap = new Map();
+
+    for (const friend of friends) {
+      const friendsLikes = new Set(friend.likes);
+
+      for (const title of [...friendsLikes]) {
+        if (!currentUserLikes.has(title)) {
+          const friendLikesMapValue = (friendLikesMap.get(title) ?? 0) + 1;
+          friendLikesMap.set(title, friendLikesMapValue);
+        }
+      }
+    }
+
+    const potentialLikes = Array.from(friendLikesMap.entries()).filter(
+      ([title, count]) =>
+        count / friends.length >= minimalScore && !currentUserLikes.has(title)
+    );
+
+    const sortedPotentialLikes = this.#orderBookTitlesByLikes(potentialLikes);
 
     return sortedPotentialLikes;
   }
