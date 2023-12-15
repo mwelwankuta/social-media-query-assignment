@@ -1,30 +1,10 @@
 export class SocialNetworkQueries {
-  currentUser = null;
-
   constructor({ fetchCurrentUser }) {
-    this.currentUser = null;
     this.fetchCurrentUser = fetchCurrentUser;
+  }
 
-    const currentUserPromise = new Promise(async (resolve, reject) => {
-      try {
-        const response = await this.initAsyncCurrentUserConstructor();
-
-        if (response?.currentUser) {
-          resolve(response.currentUser);
-        }
-      } catch (error) {
-        reject(parseErrorValue(error));
-      }
-    });
-
-    currentUserPromise
-      .then((currentUser) => {
-        this.currentUser = currentUser;
-        console.log(currentUser, "CURRENT USER");
-      })
-      .catch((err) => {
-        throw new Error(parseErrorValue(err));
-      });
+  setValue(value) {
+    this.currentUser = value;
   }
 
   async initAsyncCurrentUserConstructor() {
@@ -35,21 +15,72 @@ export class SocialNetworkQueries {
     }
   }
 
+  occurringBooksInFriends(friendsLikes) {
+    const likesHashMap = {}
+
+    for(const friend of friendsLikes) {
+      for (const like of friend.likes) {
+        if(likesHashMap[like] == undefined) {
+          likesHashMap[like] = 0
+          continue
+        }
+        likesHashMap[like] += 1
+      }
+
+    }
+
+    return Object.keys(likesHashMap).filter(book => likesHashMap[book] >= 1);
+  }
+
   /**
    *
    * @param {Number} minimalScore
    * @returns {Promise<string[]>}
    */
-  findPotentialLikes(minimalScore) {
-    if (!this?.currentUser) return;
+  async findPotentialLikes(minimalScore) {
+    const potentialLikes = [];
 
-    const numberOfFriends = this.currentUser?.friends.length;
-    const booksFriendsLiked = this.currentUser?.friends?.map(
-      (friend) => friend.likes
-    );
+    let currentUser;
 
-    console.log("Number of friends:", numberOfFriends);
-    console.log("Books liked by friends:", booksFriendsLiked);
+    try {
+      const { currentUser: user, error } = await this.initAsyncCurrentUserConstructor();
+      currentUser = user;
+
+      if (error) {
+        throw new Error(parseErrorValue(error));
+      }
+    } catch (error) {
+      throw new Error(parseErrorValue(error));
+    }
+
+    if (!currentUser) {
+      return [];
+    }
+    
+    const { friends, likes: currentUserLikes } = currentUser
+
+    // bookInMinimumScore(minimalScore * 100 /** converting minimal score to percentage */)
+
+    const booksUserFriendsLike = this.occurringBooksInFriends(friends)
+
+    let booksFriendsHaveRead = []
+
+    for (const friend of friends) {
+      for(const like of currentUserLikes) {
+        if(friend.likes.indexOf(like) >= 0 /** like in common */)  {
+
+          const tempBooksFriendsHaveRead = [...friend.likes?.filter(friendLike => friendLike !== like), ...booksFriendsHaveRead]
+          booksFriendsHaveRead = tempBooksFriendsHaveRead
+        }
+      }
+    }
+ 
+    console.log("Books read by most friends", booksUserFriendsLike);
+    console.log("Books friends have read that i might like ", booksFriendsHaveRead);
+
+
+    // books that a said percentage of friends have liked
+    return [...booksUserFriendsLike,...booksFriendsHaveRead];
   }
 }
 
