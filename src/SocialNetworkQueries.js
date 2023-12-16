@@ -6,6 +6,7 @@
  */
 
 /**
+ * User Type
  * @typedef {Object} User
  * @property {Array<string>} likes
  * @property {Array<Friend>} friends
@@ -19,6 +20,10 @@ export class SocialNetworkQueries {
     this.fetchCurrentUser = fetchCurrentUser;
   }
 
+  /**
+   * @param {Array<string>} potentialLikes
+   * @returns {Array<string>}
+   */
   #orderBookTitlesByLikes(potentialLikes) {
     return potentialLikes
       .sort(([firstTitle, firstCount], [secondTitle, secondCount]) => {
@@ -34,7 +39,6 @@ export class SocialNetworkQueries {
   }
 
   /**
-   *
    * @param {Friend} friends
    * @param {Array<string>} currentUserLikes
    * @returns {Array<string>}
@@ -57,14 +61,11 @@ export class SocialNetworkQueries {
   }
 
   /**
-   *
    * @param {Number} minimalScore
    * @returns {Array<string>}
    */
   async findPotentialLikes(minimalScore) {
-    /**
-     * @type {User | null}
-     */
+    /** @type {User | null} */
     let currentUser;
 
     try {
