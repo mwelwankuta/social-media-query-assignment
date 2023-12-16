@@ -1,5 +1,19 @@
+/**
+ * Friend Type
+ * @typedef  {Object} Friend
+ * @property {string} id
+ * @property {number} likes
+ */
+
+/**
+ * @typedef {Object} User
+ * @property {Array<string>} likes
+ * @property {Array<Friend>} friends
+ */
+
 export class SocialNetworkQueries {
   #cachedUser = null;
+  fetchCurrentUser = null;
 
   constructor({ fetchCurrentUser }) {
     this.fetchCurrentUser = fetchCurrentUser;
@@ -19,22 +33,13 @@ export class SocialNetworkQueries {
       .map(([book]) => book);
   }
 
-  async findPotentialLikes(minimalScore) {
-    let currentUser;
-
-    try {
-      const user = await this.fetchCurrentUser();
-      this.#cachedUser = currentUser = user;
-    } catch (error) {
-      currentUser = this.#cachedUser;
-    }
-
-    if (!currentUser) return [];
-    if (!currentUser.friends) return [];
-
-    const { friends, likes } = currentUser;
-
-    const currentUserLikes = new Set(likes);
+  /**
+   *
+   * @param {Friend} friends
+   * @param {Array<string>} currentUserLikes
+   * @returns {Array<string>}
+   */
+  #friendsLikedBookTitles(friends, currentUserLikes) {
     const friendLikesMap = new Map();
 
     for (const friend of friends) {
@@ -48,7 +53,39 @@ export class SocialNetworkQueries {
       }
     }
 
-    const potentialLikes = Array.from(friendLikesMap.entries()).filter(
+    return friendLikesMap.entries();
+  }
+
+  /**
+   *
+   * @param {Number} minimalScore
+   * @returns {Array<string>}
+   */
+  async findPotentialLikes(minimalScore) {
+    /**
+     * @type {User | null}
+     */
+    let currentUser;
+
+    try {
+      const user = await this.fetchCurrentUser();
+      this.#cachedUser = currentUser = user;
+    } catch (error) {
+      currentUser = this.#cachedUser;
+    }
+
+    if (!currentUser) return [];
+    if (!currentUser?.friends) return [];
+
+    const { friends, likes } = currentUser;
+
+    const currentUserLikes = new Set(likes);
+    const bookTitlesLikedByFriends = this.#friendsLikedBookTitles(
+      friends,
+      currentUserLikes
+    );
+
+    const potentialLikes = Array.from(bookTitlesLikedByFriends).filter(
       ([title, count]) =>
         count / friends.length >= minimalScore && !currentUserLikes.has(title)
     );
