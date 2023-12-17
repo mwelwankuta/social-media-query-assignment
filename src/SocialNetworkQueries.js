@@ -21,24 +21,30 @@ export class SocialNetworkQueries {
   }
 
   /**
+   * orders book titles by views and/or
    * @param {Array<string>} potentialLikes
    * @returns {Array<string>}
    */
   #orderBookTitlesByLikes(potentialLikes) {
-    return potentialLikes
-      .sort(([firstTitle, firstCount], [secondTitle, secondCount]) => {
-        if (secondCount !== firstCount) {
-          return secondCount - firstCount;
+    const orderedBookTitles = potentialLikes.sort(
+      ([currentTitle, currentCount], [nextTitle, nextCount]) => {
+        // ordering by number of views
+        if (nextCount !== currentCount) {
+          return nextCount - currentCount;
         } else {
-          return firstTitle.localeCompare(secondTitle, "en", {
+          // ordering book titles alphabetically
+          return currentTitle.localeCompare(nextTitle, "en", {
             sensitivity: "base",
           });
         }
-      })
-      .map(([book]) => book);
+      }
+    );
+
+    return orderedBookTitles.map(([book]) => book);
   }
 
   /**
+   * returns a list of most liked book titles from friends
    * @param {Friend} friends
    * @param {Array<string>} currentUserLikes
    * @returns {Array<string>}
@@ -49,15 +55,20 @@ export class SocialNetworkQueries {
     for (const friend of friends) {
       const friendsLikes = new Set(friend.likes);
 
-      for (const title of [...friendsLikes]) {
-        if (!currentUserLikes.has(title)) {
-          const friendLikesMapValue = (friendLikesMap.get(title) ?? 0) + 1;
-          friendLikesMap.set(title, friendLikesMapValue);
+      for (const bookTitle of [...friendsLikes]) {
+        if (currentUserLikes.has(bookTitle)) {
+          continue;
         }
+
+        // setting book view counts
+        if (!friendLikesMap.get(bookTitle)) {
+          friendLikesMap.set(bookTitle, 0);
+        }
+        friendLikesMap.set(bookTitle, friendLikesMap.get(bookTitle) + 1);
       }
     }
 
-    return friendLikesMap.entries();
+    return [...friendLikesMap.entries()];
   }
 
   /**
@@ -75,24 +86,31 @@ export class SocialNetworkQueries {
       currentUser = this.#cachedUser;
     }
 
+    // end execution when invalid data passed
     if (!currentUser) return [];
     if (!currentUser?.friends) return [];
 
     const { friends, likes } = currentUser;
 
-    const currentUserLikes = new Set(likes);
-    const bookTitlesLikedByFriends = this.#friendsLikedBookTitles(
+    const userLikedBookTitles = new Set(likes);
+    const friendLikedBookTitles = this.#friendsLikedBookTitles(
       friends,
-      currentUserLikes
+      userLikedBookTitles
     );
 
-    const potentialLikes = Array.from(bookTitlesLikedByFriends).filter(
-      ([title, count]) =>
-        count / friends.length >= minimalScore && !currentUserLikes.has(title)
-    );
+    const potentialLikes = friendLikedBookTitles.filter((book) => {
+      const [bookTitle, bookLikes] = book;
+      /**
+       * is potential like when ratio of likes to number of friends
+       * is greater than or equal to the minimalScore
+       *  */
+      const isBookPotentialLike =
+        bookLikes / friends.length >= minimalScore &&
+        !userLikedBookTitles.has(bookTitle);
 
-    const sortedPotentialLikes = this.#orderBookTitlesByLikes(potentialLikes);
+      return isBookPotentialLike;
+    });
 
-    return sortedPotentialLikes;
+    return this.#orderBookTitlesByLikes(potentialLikes);
   }
 }
